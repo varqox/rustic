@@ -1,4 +1,6 @@
 //! `mount` subcommand
+mod fusefs;
+
 use std::{ffi::OsStr, path::PathBuf};
 
 use crate::{commands::open_repository, status_err, Application, RUSTIC_APP};
@@ -7,6 +9,8 @@ use abscissa_core::{Command, Runnable, Shutdown};
 use anyhow::Result;
 use fuse_mt::{mount, FuseMT};
 use rustic_core::vfs::{IdenticalSnapshot, Latest, Vfs};
+
+use fusefs::FuseFS;
 
 #[derive(clap::Parser, Command, Debug)]
 pub(crate) struct MountCmd {
@@ -67,7 +71,7 @@ impl MountCmd {
 
         let options = [OsStr::new("-o"), OsStr::new("fsname=rusticfs")];
 
-        let fs = FuseMT::new(vfs.into_fuse_fs(repo), 1);
+        let fs = FuseMT::new(FuseFS::new(repo, vfs), 1);
         mount(fs, &self.mountpoint, &options)?;
 
         Ok(())

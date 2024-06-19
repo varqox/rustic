@@ -3413,7 +3413,7 @@ dependencies = [
  "rhai",
  "rstest",
  "rustic_backend",
- "rustic_core 0.2.0 (git+https://github.com/rustic-rs/rustic_core.git?branch=fusefs)",
+ "rustic_core",
  "rustic_testing",
  "self_update",
  "semver",
@@ -3432,7 +3432,7 @@ dependencies = [
 [[package]]
 name = "rustic_backend"
 version = "0.1.1"
-source = "git+https://github.com/rustic-rs/rustic_core.git?branch=fusefs#ad7b1256392bafc140a52354bb2ee5e5b7ca43dc"
+source = "git+https://github.com/rustic-rs/rustic_core.git#1e7b4a8d49703b5016d153c7ba2a30f6d2b644b3"
 dependencies = [
  "aho-corasick",
  "anyhow",
@@ -3451,7 +3451,7 @@ dependencies = [
  "rand",
  "rayon",
  "reqwest 0.11.27",
- "rustic_core 0.2.0 (git+https://github.com/rustic-rs/rustic_core.git?branch=fusefs)",
+ "rustic_core",
  "semver",
  "serde",
  "shell-words",
@@ -3466,7 +3466,7 @@ dependencies = [
 [[package]]
 name = "rustic_core"
 version = "0.2.0"
-source = "git+https://github.com/rustic-rs/rustic_core.git?branch=fusefs#ad7b1256392bafc140a52354bb2ee5e5b7ca43dc"
+source = "git+https://github.com/rustic-rs/rustic_core.git#c47ba6c3ac4ac46a16a1344e987e1f6f37cad786"
 dependencies = [
  "aes256ctr_poly1305aes",
  "anyhow",
@@ -3489,7 +3489,6 @@ dependencies = [
  "enum-map-derive",
  "enumset",
  "filetime",
- "fuse_mt",
  "futures",
  "gethostname",
  "hex",
@@ -3521,58 +3520,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustic_core"
-version = "0.2.0"
-source = "git+https://github.com/rustic-rs/rustic_core.git#c47ba6c3ac4ac46a16a1344e987e1f6f37cad786"
-dependencies = [
- "aes256ctr_poly1305aes",
- "anyhow",
- "binrw",
- "bytes",
- "bytesize",
- "cached",
- "cachedir",
- "chrono",
- "crossbeam-channel",
- "derivative",
- "derive_more",
- "derive_setters",
- "dirs",
- "displaydoc",
- "dunce",
- "enum-map",
- "enum-map-derive",
- "enumset",
- "filetime",
- "gethostname",
- "hex",
- "humantime",
- "ignore",
- "integer-sqrt",
- "itertools",
- "log",
- "nix",
- "pariter",
- "path-dedot",
- "quick_cache",
- "rand",
- "rayon",
- "runtime-format",
- "scrypt",
- "serde",
- "serde-aux",
- "serde_derive",
- "serde_json",
- "serde_with",
- "sha2",
- "strum",
- "thiserror",
- "walkdir",
- "xattr",
- "zstd",
-]
-
-[[package]]
 name = "rustic_testing"
 version = "0.1.0"
 source = "git+https://github.com/rustic-rs/rustic_core.git#c47ba6c3ac4ac46a16a1344e987e1f6f37cad786"
@@ -3582,7 +3529,7 @@ dependencies = [
  "bytes",
  "enum-map",
  "once_cell",
- "rustic_core 0.2.0 (git+https://github.com/rustic-rs/rustic_core.git)",
+ "rustic_core",
  "tempfile",
 ]
 

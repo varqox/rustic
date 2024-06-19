@@ -15,7 +15,7 @@ pub(crate) mod key;
 pub(crate) mod list;
 pub(crate) mod ls;
 pub(crate) mod merge;
-#[cfg(feature = "mount")]
+#[cfg(not(windows))]
 pub(crate) mod mount;
 pub(crate) mod prune;
 pub(crate) mod repair;
@@ -35,7 +35,7 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-#[cfg(feature = "mount")]
+#[cfg(not(windows))]
 use crate::commands::mount::MountCmd;
 #[cfg(feature = "webdav")]
 use crate::commands::webdav::WebDavCmd;
@@ -114,8 +114,8 @@ enum RusticCmd {
     /// Manage keys
     Key(KeyCmd),
 
+    #[cfg(not(windows))]
     /// Mount repository
-    #[cfg(feature = "mount")]
     Mount(MountCmd),
 
     /// List repository files
