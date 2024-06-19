@@ -29,6 +29,10 @@ pub(crate) struct MountCmd {
     /// Specify directly which path to mount
     #[clap(value_name = "SNAPSHOT[:PATH]")]
     snap: Option<String>,
+
+    /// Don't allow other users to access the mount point
+    #[clap(long)]
+    no_allow_other: bool,
 }
 
 impl Runnable for MountCmd {
@@ -69,7 +73,21 @@ impl MountCmd {
             )?
         };
 
-        let options = [OsStr::new("-o"), OsStr::new("fsname=rusticfs")];
+        let mut options = vec![
+            OsStr::new("-o"),
+            OsStr::new("fsname=rusticfs"),
+            OsStr::new("-o"),
+            OsStr::new("kernel_cache"),
+        ];
+
+        if !self.no_allow_other {
+            options.extend_from_slice(&[
+                OsStr::new("-o"),
+                OsStr::new("allow_other"),
+                OsStr::new("-o"),
+                OsStr::new("default_permissions"),
+            ])
+        }
 
         let fs = FuseMT::new(FuseFS::new(repo, vfs), 1);
         mount(fs, &self.mountpoint, &options)?;
