@@ -4,6 +4,9 @@
 //! application's configuration file and/or command-line options
 //! for specifying it.
 
+// Note: we need a fully qualified Vec here for clap, see https://github.com/clap-rs/clap/issues/4481
+#![allow(unused_qualifications)]
+
 pub(crate) mod progress_options;
 
 use std::{collections::HashMap, path::PathBuf};
@@ -173,6 +176,30 @@ pub struct GlobalOptions {
     #[clap(skip)]
     #[merge(strategy = extend)]
     pub env: HashMap<String, String>,
+
+    /// Call this command before every rustic operation
+    #[clap(
+        long,
+        global = true,
+        env = "RUSTIC_RUN_BEFORE",
+        value_parser = clap::builder::ValueParser::new(shell_words::split),
+        default_value = "",
+    )]
+    #[merge(strategy = merge::vec::overwrite_empty)]
+    // Note: we need a fully qualified Vec here for clap, see https://github.com/clap-rs/clap/issues/4481
+    pub run_before: std::vec::Vec<String>,
+
+    /// Call this command after every rustic operation
+    #[clap(
+        long,
+        global = true,
+        env = "RUSTIC_RUN_BEFORE",
+        value_parser = clap::builder::ValueParser::new(shell_words::split),
+        default_value = "",
+    )]
+    #[merge(strategy = merge::vec::overwrite_empty)]
+    // Note: we need a fully qualified Vec here for clap, see https://github.com/clap-rs/clap/issues/4481
+    pub run_after: std::vec::Vec<String>,
 }
 
 /// Extend the contents of a [`HashMap`] with the contents of another

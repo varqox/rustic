@@ -5,13 +5,16 @@ use abscissa_core::{
     application::{self, fatal_error, AppCell},
     config::{self, CfgCell},
     terminal::component::Terminal,
-    Application, Component, FrameworkError, Shutdown, StandardPaths,
+    Application, Component, FrameworkError, FrameworkErrorKind, Shutdown, StandardPaths,
 };
 
 use anyhow::Result;
 
 // use crate::helpers::*;
-use crate::{commands::EntryPoint, config::RusticConfig};
+use crate::{
+    commands::{run_command, EntryPoint},
+    config::RusticConfig,
+};
 
 /// Application state
 pub static RUSTIC_APP: AppCell<RusticApp> = AppCell::new();
@@ -95,7 +98,12 @@ impl Application for RusticApp {
             env::set_var(env, value);
         }
 
+        let run_before = config.global.run_before.clone();
         self.config.set_once(config);
+
+        run_command(&run_before, "run-before").map_err(|err| -> FrameworkError {
+            FrameworkErrorKind::ProcessError.context(err).into()
+        })?;
 
         Ok(())
     }
@@ -113,6 +121,7 @@ impl Application for RusticApp {
 impl RusticApp {
     /// Shut down this application gracefully, exiting with given exit code.
     fn shutdown_with_exitcode(&self, shutdown: Shutdown, exit_code: i32) -> ! {
+        _ = run_command(&RUSTIC_APP.config().global.run_after, "run-after");
         if let Err(e) = self.state().components().shutdown(self, shutdown) {
             fatal_error(self, &e)
         }

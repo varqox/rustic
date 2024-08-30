@@ -28,10 +28,10 @@ pub(crate) mod tui;
 #[cfg(feature = "webdav")]
 pub(crate) mod webdav;
 
-use std::fmt::Debug;
 use std::fs::File;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::{fmt::Debug, process};
 
 #[cfg(feature = "webdav")]
 use crate::commands::webdav::WebDavCmd;
@@ -59,7 +59,7 @@ use clap::builder::{
 use convert_case::{Case, Casing};
 use dialoguer::Password;
 use human_panic::setup_panic;
-use log::{log, warn, Level};
+use log::{debug, log, warn, Level};
 use rustic_core::{IndexedFull, OpenStatus, ProgressBars, Repository};
 use simplelog::{CombinedLogger, LevelFilter, TermLogger, TerminalMode, WriteLogger};
 
@@ -285,6 +285,21 @@ impl Configurable<RusticConfig> for EntryPoint {
         }
     }
 }
+
+pub fn run_command(command: &[String], info: &str) -> Result<()> {
+    debug!("calling command {info}: {command:?}");
+    if command.is_empty() {
+        return Ok(());
+    }
+    let status = process::Command::new(&command[0])
+        .args(&command[1..])
+        .status()?;
+    if !status.success() {
+        warn!("running command {info} was not successful. {status}");
+    }
+    Ok(())
+}
+
 /// Get the repository with the given options
 ///
 /// # Arguments

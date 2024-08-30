@@ -3399,6 +3399,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
+ "shell-words",
  "simplelog",
  "tempfile",
  "thiserror",

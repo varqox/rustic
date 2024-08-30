@@ -20,6 +20,8 @@ use rustic_core::{
     ParentOptions, PathList, SnapshotOptions,
 };
 
+use super::run_command;
+
 /// `backup` subcommand
 #[serde_as]
 #[derive(Clone, Command, Default, Debug, clap::Parser, Serialize, Deserialize, Merge)]
@@ -55,7 +57,7 @@ pub struct BackupCmd {
     /// Don't scan the backup source for its size - this disables ETA estimation for backup.
     #[clap(long)]
     #[merge(strategy = merge::bool::overwrite_false)]
-    pub no_scan: bool,
+    no_scan: bool,
 
     /// Output generated snapshot in json format
     #[clap(long)]
@@ -98,6 +100,16 @@ pub struct BackupCmd {
     #[serde(skip)]
     #[merge(skip)]
     config_opts: ConfigOptions,
+
+    /// Call this command before the backup
+    #[clap(skip)]
+    #[merge(strategy = merge::vec::overwrite_empty)]
+    run_before: Vec<String>,
+
+    /// Call this command after the backup
+    #[clap(skip)]
+    #[merge(strategy = merge::vec::overwrite_empty)]
+    run_after: Vec<String>,
 
     /// Backup sources
     #[clap(skip)]
@@ -150,6 +162,8 @@ impl BackupCmd {
             open_repository(&config.repository)?
         }
         .to_indexed_ids()?;
+
+        run_command(&config.backup.run_before, "run-before backup")?;
 
         // manually check for a "source" field, check is not done by serde, see above.
         if !config.backup.source.is_empty() {
@@ -221,9 +235,14 @@ impl BackupCmd {
                 }
             }
 
+            // use the correct source-specific run-before and run-after
+            let run_before = opts.run_before.clone();
+            let run_after = opts.run_after.clone();
+
             // merge "backup" section from config file, if given
             opts.merge(config.backup.clone());
 
+            run_command(&run_before, &format!("run-before backup {source}"))?;
             let backup_opts = BackupOptions::default()
                 .stdin_filename(opts.stdin_filename)
                 .as_path(opts.as_path)
@@ -264,7 +283,9 @@ impl BackupCmd {
             }
 
             info!("backup of {source} done.");
+            run_command(&run_after, &format!("run-after backup {source}"))?;
         }
+        run_command(&config.backup.run_after, "run-after backup")?;
 
         Ok(())
     }
