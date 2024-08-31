@@ -4,11 +4,9 @@
 //! application's configuration file and/or command-line options
 //! for specifying it.
 
-// Note: we need a fully qualified Vec here for clap, see https://github.com/clap-rs/clap/issues/4481
-#![allow(unused_qualifications)]
-
 pub(crate) mod progress_options;
 
+use std::str::FromStr;
 use std::{collections::HashMap, path::PathBuf};
 
 use abscissa_core::config::Config;
@@ -17,12 +15,12 @@ use abscissa_core::FrameworkError;
 use clap::Parser;
 use directories::ProjectDirs;
 use itertools::Itertools;
-use log::Level;
+use log::{trace, warn, Level};
 use merge::Merge;
 use rustic_backend::BackendOptions;
 use rustic_core::RepositoryOptions;
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, OneOrMany};
+use serde_with::{serde_as, DisplayFromStr, OneOrMany, PickFirst};
 
 #[cfg(feature = "webdav")]
 use crate::commands::webdav::WebDavCmd;
@@ -178,28 +176,12 @@ pub struct GlobalOptions {
     pub env: HashMap<String, String>,
 
     /// Call this command before every rustic operation
-    #[clap(
-        long,
-        global = true,
-        env = "RUSTIC_RUN_BEFORE",
-        value_parser = clap::builder::ValueParser::new(shell_words::split),
-        default_value = "",
-    )]
-    #[merge(strategy = merge::vec::overwrite_empty)]
-    // Note: we need a fully qualified Vec here for clap, see https://github.com/clap-rs/clap/issues/4481
-    pub run_before: std::vec::Vec<String>,
+    #[clap(long, global = true, env = "RUSTIC_RUN_BEFORE", default_value = "")]
+    pub run_before: CommandInput,
 
     /// Call this command after every rustic operation
-    #[clap(
-        long,
-        global = true,
-        env = "RUSTIC_RUN_BEFORE",
-        value_parser = clap::builder::ValueParser::new(shell_words::split),
-        default_value = "",
-    )]
-    #[merge(strategy = merge::vec::overwrite_empty)]
-    // Note: we need a fully qualified Vec here for clap, see https://github.com/clap-rs/clap/issues/4481
-    pub run_after: std::vec::Vec<String>,
+    #[clap(long, global = true, env = "RUSTIC_RUN_BEFORE", default_value = "")]
+    pub run_after: CommandInput,
 }
 
 /// Extend the contents of a [`HashMap`] with the contents of another
@@ -268,4 +250,59 @@ fn get_global_config_path() -> Option<PathBuf> {
 #[cfg(not(any(target_os = "windows", target_os = "ios", target_arch = "wasm32")))]
 fn get_global_config_path() -> Option<PathBuf> {
     Some(PathBuf::from("/etc/rustic"))
+}
+
+/// A command to be called which can be given as CLI option as well as in config files
+/// `CommandInput` implements Serialize/Deserialize as well as FromStr.
+
+// Note: we use CommandInputInternal here which itself impls FromStr in order to use serde_as PickFirst for CommandInput.
+#[serde_as]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Merge)]
+pub struct CommandInput(#[serde_as(as = "PickFirst<(_,DisplayFromStr)>")] CommandInputInternal);
+
+impl CommandInput {
+    pub fn is_set(&self) -> bool {
+        !self.0 .0.is_empty()
+    }
+
+    pub fn command(&self) -> &str {
+        &self.0 .0[0]
+    }
+
+    pub fn args(&self) -> &[String] {
+        &self.0 .0[1..]
+    }
+
+    pub fn run(&self, info: &str) -> Result<(), std::io::Error> {
+        if !self.is_set() {
+            trace!("not calling command {info} - not set");
+            return Ok(());
+        }
+        trace!("calling command {info}: {self:?}");
+        let status = std::process::Command::new(self.command())
+            .args(self.args())
+            .status()?;
+        if !status.success() {
+            warn!("running command {info} was not successful. {status}");
+        }
+        Ok(())
+    }
+}
+
+impl FromStr for CommandInput {
+    type Err = shell_words::ParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(CommandInputInternal::from_str(s)?))
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, Merge)]
+struct CommandInputInternal(#[merge(strategy = merge::vec::overwrite_empty)] Vec<String>);
+
+impl FromStr for CommandInputInternal {
+    type Err = shell_words::ParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let vec = shell_words::split(s)?;
+        Ok(Self(vec))
+    }
 }

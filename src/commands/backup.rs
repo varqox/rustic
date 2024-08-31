@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 use crate::{
     commands::{get_repository, init::init, open_repository},
+    config::CommandInput,
     helpers::bytes_size_to_string,
     status_err, Application, RUSTIC_APP,
 };
@@ -19,8 +20,6 @@ use rustic_core::{
     BackupOptions, ConfigOptions, KeyOptions, LocalSourceFilterOptions, LocalSourceSaveOptions,
     ParentOptions, PathList, SnapshotOptions,
 };
-
-use super::run_command;
 
 /// `backup` subcommand
 #[serde_as]
@@ -103,13 +102,11 @@ pub struct BackupCmd {
 
     /// Call this command before the backup
     #[clap(skip)]
-    #[merge(strategy = merge::vec::overwrite_empty)]
-    run_before: Vec<String>,
+    run_before: CommandInput,
 
     /// Call this command after the backup
     #[clap(skip)]
-    #[merge(strategy = merge::vec::overwrite_empty)]
-    run_after: Vec<String>,
+    run_after: CommandInput,
 
     /// Backup sources
     #[clap(skip)]
@@ -163,7 +160,7 @@ impl BackupCmd {
         }
         .to_indexed_ids()?;
 
-        run_command(&config.backup.run_before, "run-before backup")?;
+        config.backup.run_before.run("run-before backup")?;
 
         // manually check for a "source" field, check is not done by serde, see above.
         if !config.backup.source.is_empty() {
@@ -242,7 +239,7 @@ impl BackupCmd {
             // merge "backup" section from config file, if given
             opts.merge(config.backup.clone());
 
-            run_command(&run_before, &format!("run-before backup {source}"))?;
+            run_before.run(&format!("run-before backup {source}"))?;
             let backup_opts = BackupOptions::default()
                 .stdin_filename(opts.stdin_filename)
                 .as_path(opts.as_path)
@@ -283,9 +280,9 @@ impl BackupCmd {
             }
 
             info!("backup of {source} done.");
-            run_command(&run_after, &format!("run-after backup {source}"))?;
+            run_after.run(&format!("run-after backup {source}"))?;
         }
-        run_command(&config.backup.run_after, "run-after backup")?;
+        config.backup.run_after.run("run-after backup")?;
 
         Ok(())
     }
