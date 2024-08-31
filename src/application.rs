@@ -95,14 +95,12 @@ impl Application for RusticApp {
             env::set_var(env, value);
         }
 
-        let run_before = config.global.run_before.clone();
+        let hooks = config.global.hooks.clone();
         self.config.set_once(config);
 
-        run_before
-            .run("run-before")
-            .map_err(|err| -> FrameworkError {
-                FrameworkErrorKind::ProcessError.context(err).into()
-            })?;
+        hooks.run_before().map_err(|err| -> FrameworkError {
+            FrameworkErrorKind::ProcessError.context(err).into()
+        })?;
 
         Ok(())
     }
@@ -120,7 +118,12 @@ impl Application for RusticApp {
 impl RusticApp {
     /// Shut down this application gracefully, exiting with given exit code.
     fn shutdown_with_exitcode(&self, shutdown: Shutdown, exit_code: i32) -> ! {
-        _ = RUSTIC_APP.config().global.run_after.run("run-after");
+        let hooks = &RUSTIC_APP.config().global.hooks;
+        match shutdown {
+            Shutdown::Crash => _ = hooks.run_failed(),
+            _ => _ = hooks.run_after(),
+        };
+        _ = hooks.run_finally();
         if let Err(e) = self.state().components().shutdown(self, shutdown) {
             fatal_error(self, &e)
         }
