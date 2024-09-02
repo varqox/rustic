@@ -6,9 +6,7 @@
 
 pub(crate) mod progress_options;
 
-use std::fmt::{Debug, Display};
-use std::ops::Deref;
-use std::str::FromStr;
+use std::fmt::Debug;
 use std::{collections::HashMap, path::PathBuf};
 
 use abscissa_core::config::Config;
@@ -17,12 +15,12 @@ use abscissa_core::FrameworkError;
 use clap::Parser;
 use directories::ProjectDirs;
 use itertools::Itertools;
-use log::{debug, trace, warn, Level};
+use log::Level;
 use merge::Merge;
 use rustic_backend::BackendOptions;
-use rustic_core::RepositoryOptions;
+use rustic_core::{CommandInput, RepositoryOptions};
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DisplayFromStr, OneOrMany, PickFirst};
+use serde_with::{serde_as, OneOrMany};
 
 #[cfg(feature = "webdav")]
 use crate::commands::webdav::WebDavCmd;
@@ -259,7 +257,7 @@ pub struct Hooks {
     /// Call this command after every successful rustic operation
     pub run_after: CommandInput,
 
-    /// Call this command after every rustic operation
+    /// Call this command after every failed rustic operation
     pub run_failed: CommandInput,
 
     /// Call this command after every rustic operation
@@ -287,95 +285,5 @@ impl Hooks {
     }
     pub fn run_finally(&self) -> Result<(), std::io::Error> {
         self.run_finally.run(&self.context, "run-finally")
-    }
-}
-
-/// A command to be called which can be given as CLI option as well as in config files
-/// `CommandInput` implements Serialize/Deserialize as well as FromStr.
-
-// Note: we use CommandInputInternal here which itself impls FromStr in order to use serde_as PickFirst for CommandInput.
-#[serde_as]
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Merge)]
-pub struct CommandInput(
-    // Note: we use CommandInputInternal here which itself impls FromStr in order to use serde_as PickFirst for CommandInput.
-    #[serde_as(as = "PickFirst<(DisplayFromStr,_)>")] CommandInputInternal,
-);
-
-impl From<Vec<String>> for CommandInput {
-    fn from(value: Vec<String>) -> Self {
-        Self(CommandInputInternal(value))
-    }
-}
-
-impl From<CommandInput> for Vec<String> {
-    fn from(value: CommandInput) -> Self {
-        value.0 .0
-    }
-}
-
-impl Deref for CommandInput {
-    type Target = Vec<String>;
-    fn deref(&self) -> &Self::Target {
-        &self.0 .0
-    }
-}
-
-impl CommandInput {
-    pub fn is_set(&self) -> bool {
-        !self.0 .0.is_empty()
-    }
-
-    pub fn command(&self) -> &str {
-        &self.0 .0[0]
-    }
-
-    pub fn args(&self) -> &[String] {
-        &self.0 .0[1..]
-    }
-
-    pub fn run(&self, context: &str, what: &str) -> Result<(), std::io::Error> {
-        if !self.is_set() {
-            trace!("not calling command {context}:{what} - not set");
-            return Ok(());
-        }
-        debug!("calling command {context}:{what}: {self:?}");
-        let status = std::process::Command::new(self.command())
-            .args(self.args())
-            .status()?;
-        if !status.success() {
-            warn!("running command {context}:{what} was not successful. {status}");
-        }
-        Ok(())
-    }
-}
-
-impl FromStr for CommandInput {
-    type Err = shell_words::ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(CommandInputInternal::from_str(s)?))
-    }
-}
-
-impl Display for CommandInput {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self.0, f)
-    }
-}
-
-#[derive(Debug, Default, Clone, Serialize, Deserialize, Merge)]
-struct CommandInputInternal(#[merge(strategy = merge::vec::overwrite_empty)] Vec<String>);
-
-impl FromStr for CommandInputInternal {
-    type Err = shell_words::ParseError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let vec = shell_words::split(s)?;
-        Ok(Self(vec))
-    }
-}
-
-impl Display for CommandInputInternal {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = shell_words::join(&self.0);
-        f.write_str(&s)
     }
 }

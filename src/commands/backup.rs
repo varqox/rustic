@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, OneOrMany};
 
 use rustic_core::{
-    BackupOptions, ConfigOptions, IndexedFull, KeyOptions, LocalSourceFilterOptions,
+    BackupOptions, ConfigOptions, IndexedIds, KeyOptions, LocalSourceFilterOptions,
     LocalSourceSaveOptions, ParentOptions, PathList, ProgressBars, Repository, SnapshotOptions,
 };
 
@@ -154,7 +154,7 @@ impl BackupCmd {
         } else {
             open_repository(&config.repository)?
         }
-        .to_indexed()?; //TODO: use .to_indexed_ids()?;
+        .to_indexed_ids()?;
 
         // manually check for a "source" field, check is not done by serde, see above.
         if !config.backup.source.is_empty() {
@@ -243,7 +243,7 @@ impl BackupCmd {
     }
 }
 
-fn backup_source<P: ProgressBars, S: IndexedFull>(
+fn backup_source<P: ProgressBars, S: IndexedIds>(
     source: PathList,
     mut opts: BackupCmd,
     repo: &Repository<P, S>,
