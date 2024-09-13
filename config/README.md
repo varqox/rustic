@@ -53,7 +53,7 @@ If you want to contribute your own configuration, please
 
 ## Sections and Attributes
 
-### Global Options
+### Global Options `[global]`
 
 | Attribute         | Description                                                                       | Default Value | Example Value            | Environment Variable     |
 | ----------------- | --------------------------------------------------------------------------------- | ------------- | ------------------------ | ------------------------ |
@@ -65,7 +65,7 @@ If you want to contribute your own configuration, please
 | progress-interval | The interval at which progress indicators are shown.                              | "100ms"       | "1m"                     | RUSTIC_PROGRESS_INTERVAL |
 | use-profile       | Profile or array of profiles to use. Allows to recursely use other profiles.      | Empty array   | "other" , ["2nd", "3rd"] | RUSTIC_USE_PROFILE       |
 
-### Global Hooks
+### Global Hooks `[global.hooks]`
 
 These external commands are before and after each commands, respectively.
 
@@ -76,7 +76,7 @@ These external commands are before and after each commands, respectively.
 | run-failed  | Run the given command after failed execution     | not set       | "echo test", ["echo", "test"] |                      |
 | run-finally | Run the given command after every execution      | not set       | "echo test", ["echo", "test"] |                      |
 
-### Global Options - env variables
+### Global Options - env variables `[global.env]`
 
 All given environment variables are set before processing. This is handy to
 configure e.g. the `rclone`-backend or some commands which will be called by
@@ -86,7 +86,7 @@ rustic.
 config profile as a possible source of errors if you encounter problems. They
 could possibly shadow other values that you have already set.
 
-### Repository Options
+### Repository Options `[repository]`
 
 | Attribute        | Description                                                | Default Value            | Example Value          | Environment Variable    |
 | ---------------- | ---------------------------------------------------------- | ------------------------ | ---------------------- | ----------------------- |
@@ -101,14 +101,33 @@ could possibly shadow other values that you have already set.
 | warm-up-command  | Command to warm up the repository.                         | Not set                  |                        |                         |
 | warm-up-wait     | The wait time for warming up the repository.               | Not set                  |                        |                         |
 
-### Repository Options (Additional)
+### Repository Options (Additional) `[repository.options]`
+
+Additional repository options - depending on backend. These can be only set in
+the config file or using env variables. For env variables use upper snake case
+and prefix with "RUSTIC_REPO_OPT_", e.g. `use-passwort = "true"` becomes
+`RUSTIC_REPO_OPT_USE_PASSWORT=true`
 
 | Attribute           | Description                                                        | Default Value | Example Value                  |
 | ------------------- | ------------------------------------------------------------------ | ------------- | ------------------------------ |
 | post-create-command | Command to execute after creating a snapshot in the local backend. | Not set       | "par2create -qq -n1 -r5 %file" |
 | post-delete-command | Command to execute after deleting a snapshot in the local backend. | Not set       | "sh -c \"rm -f %file*.par2\""  |
 
-### Snapshot-Filter Options
+### Repository Options for cold repo (Additional) `[repository.options-cold]`
+
+Additional repository options for cold repository - depending on backend. These
+can be only set in the config file or using env variables. For env variables use
+upper snake case and prefix with "RUSTIC_REPO_OPTCOLD_".
+
+### Repository Options for hot repo (Additional) `[repository.options-hot]`
+
+Additional repository options for hot repository - depending on backend. These
+can be only set in the config file or using env variables. For env variables use
+upper snake case and prefix with "RUSTIC_REPO_OPTHOT_".
+
+see Repository Options
+
+### Snapshot-Filter Options `[snapshot-filter]`
 
 | Attribute    | Description                                    | Default Value | Example Value                |
 | ------------ | ---------------------------------------------- | ------------- | ---------------------------- |
@@ -118,7 +137,7 @@ could possibly shadow other values that you have already set.
 | filter-tags  | Array or string of tags to filter snapshots.   | Not set       |                              |
 | filter-fn    | Custom filter function for snapshots.          | Not set       |                              |
 
-### Backup Options
+### Backup Options `[backup]`
 
 **Note**: If set here, the backup options apply for all sources, although they
 can be overwritten in the source-specifc configuration, see below.
@@ -158,7 +177,7 @@ can be overwritten in the source-specifc configuration, see below.
 | time                  | Set the time saved in the snapshot.                                                     | Not set               |               |
 | with-atime            | If true, includes file access time (atime) in the backup.                               | false                 |               |
 
-### Backup Hooks
+### Backup Hooks `[backup.hooks]`
 
 These external commands are before and after each backup, respectively. Note
 that global hooks are run additionaly.
@@ -170,7 +189,7 @@ that global hooks are run additionaly.
 | run-failed  | Run the given command after failed execution     | not set       | "echo test", ["echo", "test"] |                      |
 | run-finally | Run the given command after every execution      | not set       | "echo test", ["echo", "test"] |                      |
 
-### Backup Sources
+### Backup Sources `[[backup.sources]]`
 
 **Note**: All of the backup options mentioned before can also be used as
 source-specific option and then only apply to this source.
@@ -182,7 +201,10 @@ to global and backup hooks. only apply
 | --------- | ------------------------------------ | ------------- | --------------------------- |
 | source    | Source directory or file to back up. | Not set       | "/dir" , ["/dir1", "/dir2"] |
 
-### Forget Options
+### Forget Options `[forget]`
+
+**Note**: At lest on of the `keep-*` options must be given. Use
+`keep-none = true` if you want to remove all snapshots.
 
 | Attribute                  | Description                                                             | Default Value      | Example Value          |
 | -------------------------- | ----------------------------------------------------------------------- | ------------------ | ---------------------- |
@@ -203,9 +225,10 @@ to global and backup hooks. only apply
 | keep-within-half-yearly    | The time duration within which half-yearly snapshots will be kept.      | Not set            |                        |
 | keep-within-yearly         | The time duration within which yearly snapshots will be kept.           | Not set            |                        |
 | keep-tag                   | Keep snapshots containing one of these tags.                            | Not set            | ["keep", "important" ] |
+| keep-none                  | Allow to keep no snapshots.                                             | false              | true                   |
 | prune                      | If set to true, prune the repository after snapshots have been removed. | false              |                        |
 
-### Copy Targets
+### Copy Targets `[[copy.targets]]`
 
 **Note**: Copy-targets are simply repositories with the same defaults as within
 the repository section.
@@ -223,7 +246,7 @@ the repository section.
 | warm-up-command  | Command to warm up the target repository.                         | Not set                  |                        |
 | warm-up-wait     | The wait time for warming up the target repository.               | Not set                  |                        |
 
-### WebDAV Options
+### WebDAV Options `[webdav]`
 
 `rustic` supports mounting snapshots via WebDAV. This is useful if you want to
 access your snapshots via a file manager.

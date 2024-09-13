@@ -124,7 +124,8 @@ impl RusticApp {
             _ => _ = hooks.run_after(),
         };
         _ = hooks.run_finally();
-        if let Err(e) = self.state().components().shutdown(self, shutdown) {
+        let result = self.state().components().shutdown(self, shutdown);
+        if let Err(e) = result {
             fatal_error(self, &e)
         }
 
