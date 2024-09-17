@@ -5,10 +5,10 @@ check-index = false
 no-progress = false
 
 [global.hooks]
-run-before = ""
-run-after = ""
-run-failed = ""
-run-finally = ""
+run-before = []
+run-after = []
+run-failed = []
+run-finally = []
 
 [global.env]
 
@@ -57,10 +57,10 @@ sources = []
 source = []
 
 [backup.hooks]
-run-before = ""
-run-after = ""
-run-failed = ""
-run-finally = ""
+run-before = []
+run-after = []
+run-failed = []
+run-finally = []
 
 [copy]
 targets = []

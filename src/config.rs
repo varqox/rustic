@@ -18,7 +18,7 @@ use itertools::Itertools;
 use log::Level;
 use merge::Merge;
 use rustic_backend::BackendOptions;
-use rustic_core::{CommandInput, RepositoryOptions};
+use rustic_core::{CommandInput, RepositoryOptions, RusticResult};
 use serde::{Deserialize, Serialize};
 use serde_with::{serde_as, OneOrMany};
 
@@ -252,16 +252,20 @@ fn get_global_config_path() -> Option<PathBuf> {
 #[serde(default, rename_all = "kebab-case", deny_unknown_fields)]
 pub struct Hooks {
     /// Call this command before every rustic operation
-    pub run_before: CommandInput,
+    #[merge(strategy = merge::vec::append)]
+    pub run_before: Vec<CommandInput>,
 
     /// Call this command after every successful rustic operation
-    pub run_after: CommandInput,
+    #[merge(strategy = merge::vec::append)]
+    pub run_after: Vec<CommandInput>,
 
     /// Call this command after every failed rustic operation
-    pub run_failed: CommandInput,
+    #[merge(strategy = merge::vec::append)]
+    pub run_failed: Vec<CommandInput>,
 
     /// Call this command after every rustic operation
-    pub run_finally: CommandInput,
+    #[merge(strategy = merge::vec::append)]
+    pub run_finally: Vec<CommandInput>,
 
     #[serde(skip)]
     #[merge(skip)]
@@ -274,16 +278,23 @@ impl Hooks {
         hooks.context = context.to_string();
         hooks
     }
-    pub fn run_before(&self) -> Result<(), std::io::Error> {
-        self.run_before.run(&self.context, "run-before")
+    fn run_all(cmds: &[CommandInput], context: &str, what: &str) -> RusticResult<()> {
+        for cmd in cmds {
+            cmd.run(context, what)?;
+        }
+        Ok(())
     }
-    pub fn run_after(&self) -> Result<(), std::io::Error> {
-        self.run_after.run(&self.context, "run-after")
+
+    pub fn run_before(&self) -> RusticResult<()> {
+        Self::run_all(&self.run_before, &self.context, "run-before")
     }
-    pub fn run_failed(&self) -> Result<(), std::io::Error> {
-        self.run_failed.run(&self.context, "run-failed")
+    pub fn run_after(&self) -> RusticResult<()> {
+        Self::run_all(&self.run_after, &self.context, "run-after")
     }
-    pub fn run_finally(&self) -> Result<(), std::io::Error> {
-        self.run_finally.run(&self.context, "run-finally")
+    pub fn run_failed(&self) -> RusticResult<()> {
+        Self::run_all(&self.run_failed, &self.context, "run-failed")
+    }
+    pub fn run_finally(&self) -> RusticResult<()> {
+        Self::run_all(&self.run_finally, &self.context, "run-finally")
     }
 }
